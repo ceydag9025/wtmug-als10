@@ -1,24 +1,42 @@
-const statusEl    = document.getElementById('status');
-const connectEl   = document.getElementById('connect');
-const chatEl      = document.getElementById('chat');
-const messagesEl  = document.getElementById('messages');
-const scanBtn     = document.getElementById('scanBtn');
-const scannerEl   = document.getElementById('scanner');
-const manualLinkEl= document.getElementById('manualLink');
-const connectBtn  = document.getElementById('connectManualBtn');
-const textInput   = document.getElementById('textInput');
-const sendBtn     = document.getElementById('sendBtn');
-const attachBtn   = document.getElementById('attachBtn');
-const fileInput   = document.getElementById('fileInput');
+console.log('%cmobile.js v5 — ' + new Date().toISOString(), 'color:#22c55e;font-weight:bold');
+
+const statusEl     = document.getElementById('status');
+const connectEl    = document.getElementById('connect');
+const chatEl       = document.getElementById('chat');
+const messagesEl   = document.getElementById('messages');
+const scanBtn      = document.getElementById('scanBtn');
+const scannerEl    = document.getElementById('scanner');
+const manualLinkEl = document.getElementById('manualLink');
+const connectBtn   = document.getElementById('connectManualBtn');
+const textInput    = document.getElementById('textInput');
+const sendBtn      = document.getElementById('sendBtn');
+const attachBtn    = document.getElementById('attachBtn');
+const fileInput    = document.getElementById('fileInput');
 
 const chatUI = new ChatUI(messagesEl);
 let peer = null, conn = null;
 
-function setStatus(txt, cls) { statusEl.textContent = txt; statusEl.className = 'status ' + (cls || ''); }
+function setStatus(txt, cls) {
+  statusEl.textContent = txt;
+  statusEl.className = 'status ' + (cls || '');
+}
+
+function extractPeerId(input) {
+  if (!input) return null;
+  const s = String(input).trim();
+  const m = s.match(/peer=([^&]+)/);
+  if (m) return decodeURIComponent(m[1]);
+  return s; // zaten ID
+}
 
 function connectTo(peerId) {
-  setStatus('Bağlanıyor...', 'waiting');
-  peer = new Peer(undefined, { debug: 1 });
+  if (!peerId) return;
+  setStatus('Bağlanıyor: ' + peerId, 'waiting');
+  if (typeof Peer === 'undefined') {
+    setStatus('PeerJS yüklenemedi', 'error');
+    return;
+  }
+  peer = new Peer(undefined, { debug: 2 });
   peer.on('open', () => {
     const c = peer.connect(peerId, { reliable: true });
     conn = c;
@@ -39,7 +57,10 @@ function connectTo(peerId) {
     });
     c.on('error', console.error);
   });
-  peer.on('error', err => { console.error(err); setStatus('Hata: ' + err.type, 'error'); });
+  peer.on('error', (err) => {
+    console.error('Peer hata:', err);
+    setStatus('Hata: ' + err.type, 'error');
+  });
 }
 
 function sendChat() {
@@ -50,7 +71,7 @@ function sendChat() {
   conn.send({ type: 'chat', text });
 }
 sendBtn.addEventListener('click', sendChat);
-textInput.addEventListener('keydown', e => {
+textInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
 });
 attachBtn.addEventListener('click', () => fileInput.click());
@@ -60,13 +81,15 @@ fileInput.addEventListener('change', async () => {
 });
 
 connectBtn.addEventListener('click', () => {
-  const val = manualLinkEl.value.trim();
-  if (!val) return;
-  const m = val.match(/peer=([^&]+)/);
-  connectTo(m ? decodeURIComponent(m[1]) : val);
+  const id = extractPeerId(manualLinkEl.value);
+  if (id) connectTo(id);
 });
 
 scanBtn.addEventListener('click', async () => {
+  if (typeof Html5Qrcode === 'undefined') {
+    alert('QR okuyucu kütüphanesi yüklenemedi. Linki elle yapıştırın.');
+    return;
+  }
   scannerEl.classList.remove('hidden');
   const scanner = new Html5Qrcode('scanner');
   try {
@@ -75,8 +98,8 @@ scanBtn.addEventListener('click', async () => {
       { fps: 10, qrbox: { width: 240, height: 240 } },
       (text) => {
         scanner.stop().then(() => { scanner.clear(); scannerEl.classList.add('hidden'); });
-        const m = text.match(/peer=([^&]+)/);
-        connectTo(m ? decodeURIComponent(m[1]) : text.trim());
+        const id = extractPeerId(text);
+        if (id) { manualLinkEl.value = id; connectTo(id); }
       },
       () => {}
     );
@@ -86,6 +109,10 @@ scanBtn.addEventListener('click', async () => {
   }
 });
 
-// URL hash ile otomatik bağlan (#peer=XXXX)
+// URL hash ile otomatik bağlan
 const m = location.hash.match(/peer=([^&]+)/);
-if (m) connectTo(decodeURIComponent(m[1]));
+if (m) {
+  const id = decodeURIComponent(m[1]);
+  manualLinkEl.value = id;
+  connectTo(id);
+}

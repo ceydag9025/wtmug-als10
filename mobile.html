@@ -2,11 +2,11 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b3d91">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
   <title>Sohbet & Dosya — Telefon</title>
 </head>
 <body>
@@ -18,12 +18,11 @@
   <main>
     <section id="connect" class="panel">
       <h2>Bilgisayara bağlan</h2>
-      <p class="muted">QR kodu okut veya bilgisayardan paylaşılan bağlantıyı yapıştır.</p>
       <button id="scanBtn" class="primary">📷 Kamera ile QR Oku</button>
       <div id="scanner" class="scanner hidden"></div>
       <div class="manual" style="margin-top:16px;">
-        <label class="muted">Bağlantı adresi / Peer ID:</label>
-        <input id="manualLink" placeholder="https://.../mobile.html#peer=...">
+        <label class="muted">Bağlantı linki veya Peer ID:</label>
+        <input id="manualLink" placeholder="https://.../mobile.html#peer=w-xxxx veya w-xxxx">
         <button id="connectManualBtn" style="margin-top:8px;">Bağlan</button>
       </div>
     </section>
@@ -38,9 +37,13 @@
       </div>
     </section>
   </main>
+
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"
           onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js'"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
           onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js'"></script>
+  <script src="common.js?v=5"></script>
+  <script src="mobile.js?v=5"></script>
+  <script src="sw-register.js?v=5"></script>
 </body>
 </html>

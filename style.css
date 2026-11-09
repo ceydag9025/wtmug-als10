@@ -13,7 +13,7 @@ header h1{font-size:1.1rem;margin:0}
 header .back{color:var(--accent);text-decoration:none;padding:4px 8px;border-radius:6px}
 header .back:hover{background:var(--card2)}
 .status{margin-left:auto;padding:4px 12px;border-radius:20px;font-size:.8rem;
-  background:var(--card2);color:var(--muted)}
+  background:var(--card2);color:var(--muted);max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .status.waiting{color:#f59e0b}.status.connected{color:var(--green)}.status.error{color:var(--red)}
 main{flex:1;padding:20px;display:flex;flex-direction:column;gap:16px;
   max-width:900px;margin:0 auto;width:100%}
@@ -39,13 +39,32 @@ button.primary:hover{background:var(--accent-hover)}
 input,textarea{background:var(--card2);color:var(--text);border:1px solid var(--border);
   padding:10px 12px;border-radius:8px;font-size:.9rem;font-family:inherit;width:100%}
 input:focus,textarea:focus{outline:none;border-color:var(--accent)}
-canvas{background:#fff;border-radius:8px;max-width:100%}
 .link-row{display:flex;gap:8px;margin-top:8px}
 .link-row input{flex:1;font-size:.75rem}
+
+/* ==== QR ALANI ==== */
+.qr-holder{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:60px}
+.qr-img{
+  display:block;background:#fff;padding:12px;border-radius:8px;
+  width:280px;height:280px;image-rendering:pixelated;
+}
+.qr-diag{font:11px monospace;color:var(--muted);white-space:pre-wrap}
+.qr-fallback{
+  background:var(--card2);border:1px dashed var(--border);border-radius:8px;
+  padding:12px;font:12px/1.5 monospace;word-break:break-all;
+  color:var(--text);max-width:340px;
+}
+.qr-fallback code{
+  user-select:all;background:var(--bg);padding:4px;display:block;margin-top:6px;
+  color:var(--accent);word-break:break-all;
+}
+canvas{background:#fff;border-radius:8px;max-width:100%}
 .qr-wrap{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
 .qr-info{flex:1;min-width:200px}
 .peer-id{font-family:monospace;font-size:1.1rem;color:var(--accent);
   word-break:break-all;margin:4px 0}
+
+/* ==== SOHBET ==== */
 .messages{display:flex;flex-direction:column;gap:8px;min-height:300px;max-height:55vh;
   overflow-y:auto;padding:8px;background:var(--bg);border-radius:8px;margin-bottom:12px}
 .msg{padding:8px 12px;border-radius:10px;max-width:80%;word-wrap:break-word;
@@ -64,6 +83,8 @@ canvas{background:#fff;border-radius:8px;max-width:100%}
 .composer{display:flex;gap:8px;align-items:flex-end}
 .composer textarea{flex:1;resize:none;min-height:44px;max-height:120px}
 .composer button{height:44px}
+
+/* ==== TARAYICI & LOG ==== */
 .scanner{margin-top:12px;border-radius:8px;overflow:hidden;background:#000;min-height:200px}
 .scanner video{width:100%!important}
 .stats{display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap}
@@ -75,4 +96,7 @@ canvas{background:#fff;border-radius:8px;max-width:100%}
   font-family:monospace;font-size:.8rem;max-height:200px;overflow-y:auto}
 .log div{padding:2px 0;color:var(--muted)}
 .pct{text-align:center;font-size:1.5rem;font-weight:700;color:var(--accent)}
-@media (max-width:600px){main{padding:12px}.panel{padding:14px}.msg{max-width:90%}}
+@media (max-width:600px){
+  main{padding:12px}.panel{padding:14px}.msg{max-width:90%}
+  .qr-img{width:240px;height:240px}
+}

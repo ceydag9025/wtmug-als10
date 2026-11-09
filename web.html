@@ -2,11 +2,11 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b3d91">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
   <title>Sohbet & Dosya — Bilgisayar</title>
 </head>
 <body>
@@ -18,11 +18,14 @@
   <main>
     <section id="waiting" class="panel">
       <h2>Telefondan bağlan</h2>
-      <p class="muted">QR kodu telefonunla okut veya bağlantıyı elle aç:</p>
-      <div id="qrHolder"><canvas id="qrcode"></canvas></div>
+      <p class="muted">QR kodu telefonunla okut <strong>veya</strong> aşağıdaki linki/ID'yi telefonda aç:</p>
+      <div id="qrHolder" class="qr-holder"></div>
       <div class="link-row" style="margin-top:12px;">
         <input id="peerLink" readonly>
         <button id="copyBtn">Kopyala</button>
+      </div>
+      <div style="margin-top:8px;">
+        <strong>Peer ID:</strong> <code id="peerIdView" style="color:var(--accent);user-select:all;">—</code>
       </div>
     </section>
 
@@ -37,15 +40,12 @@
     </section>
   </main>
 
-  <!-- PeerJS: unpkg → jsdelivr fallback -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"
           onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js'"></script>
-  <!-- qrcode: jsdelivr → unpkg fallback -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"
           onerror="this.onerror=null;this.src='https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js'"></script>
-
-  <script src="common.js"></script>
-  <script src="web.js"></script>
-  <script src="sw-register.js"></script>
+  <script src="common.js?v=5"></script>
+  <script src="web.js?v=5"></script>
+  <script src="sw-register.js?v=5"></script>
 </body>
 </html>

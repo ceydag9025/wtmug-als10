@@ -2,11 +2,11 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b3d91">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
   <title>Hoca Modu</title>
 </head>
 <body>
@@ -23,10 +23,10 @@
       <div id="fileName" class="muted" style="margin-top:8px;">Henüz dosya seçilmedi</div>
     </section>
 
-    <section id="qrSection" class="panel">
+    <section class="panel">
       <h2>2. Öğrenciler bağlansın</h2>
       <div class="qr-wrap">
-        <div id="qrHolder"><canvas id="qrcode"></canvas></div>
+        <div id="qrHolder" class="qr-holder"></div>
         <div class="qr-info">
           <div class="muted">Hoca ID:</div>
           <div id="peerId" class="peer-id">—</div>
@@ -42,7 +42,7 @@
     <section class="panel">
       <h2>3. Gönderim Günlüğü</h2>
       <div class="stats">
-        <div class="stat">👥 Bağlı Öğrenci: <b id="studentCount">0</b></div>
+        <div class="stat">👥 Bağlı: <b id="studentCount">0</b></div>
         <div class="stat">✅ Tamamlayan: <b id="doneCount">0</b></div>
       </div>
       <div id="students" class="students"></div>
@@ -55,8 +55,8 @@
           onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js'"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"
           onerror="this.onerror=null;this.src='https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js'"></script>
-  <script src="common.js"></script>
-  <script src="hoca.js"></script>
-  <script src="sw-register.js"></script>
+  <script src="common.js?v=5"></script>
+  <script src="hoca.js?v=5"></script>
+  <script src="sw-register.js?v=5"></script>
 </body>
 </html>

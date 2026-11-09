@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tanı</title>
+  <style>
+    body{font-family:system-ui,sans-serif;background:#0e1116;color:#e6edf3;padding:20px;max-width:720px;margin:auto}
+    h1{font-size:1.2rem}
+    pre{background:#161b22;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap}
+    img{background:#fff;border-radius:8px;margin-top:12px}
+  </style>
+</head>
+<body>
+  <h1>🔍 Tanı Sayfası — v5</h1>
+  <p>Hangi kütüphanenin yüklendiğini ve PeerJS sunucusunun erişilebilir olduğunu gösterir.</p>
+  <pre id="log">Yükleniyor...</pre>
+
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"
+          onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js'"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"
+          onerror="this.onerror=null;this.src='https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js'"></script>
+
+  <script>
+    const log = document.getElementById('log');
+    function w(s){ log.textContent += '\n' + s; }
+    setTimeout(() => {
+      log.textContent = '== Kütüphaneler ==';
+      w('PeerJS: ' + (typeof Peer !== 'undefined' ? '✅' : '❌ YÜKLENMEDİ'));
+      w('QRCode: ' + (typeof QRCode !== 'undefined' ? '✅' : '❌ YÜKLENMEDİ'));
+
+      if (typeof QRCode !== 'undefined') {
+        try {
+          QRCode.toDataURL('test', { width: 200 }, (err, url) => {
+            w('QRCode.toDataURL: ' + (err ? '❌ ' + err.message : '✅'));
+            if (!err) { const img = new Image(); img.src = url; document.body.appendChild(img); }
+            else {
+              w('qrserver.com fallback deneniyor...');
+              const img = new Image();
+              img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=test';
+              img.onload = () => w('qrserver.com: ✅');
+              img.onerror = () => w('qrserver.com: ❌');
+              document.body.appendChild(img);
+            }
+          });
+        } catch(e) { w('QRCode hata: ❌ ' + e.message); }
+      } else {
+        w('qrserver.com deneniyor...');
+        const img = new Image();
+        img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=test';
+        img.onload = () => w('qrserver.com: ✅');
+        img.onerror = () => w('qrserver.com: ❌');
+        document.body.appendChild(img);
+      }
+
+      if (typeof Peer !== 'undefined') {
+        w('\n== PeerJS sunucu testi ==');
+        const id = 'diag-' + Math.random().toString(36).slice(2, 8);
+        const p = new Peer(id, { debug: 1 });
+        p.on('open', pid => w('Peer açıldı: ✅ ' + pid));
+        p.on('error', e => w('Peer hata: ❌ ' + e.type));
+        setTimeout(() => w('10 sn sonra: ' + (p.open ? 'AÇIK ✅' : 'KAPALI ❌')), 10000);
+      }
+    }, 800);
+  </script>
+</body>
+</html>

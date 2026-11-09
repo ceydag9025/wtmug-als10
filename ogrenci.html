@@ -2,11 +2,11 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b3d91">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
   <title>Öğrenci Modu</title>
 </head>
 <body>
@@ -18,8 +18,8 @@
   <main>
     <section id="connectSection" class="panel">
       <h2>Hocaya bağlan</h2>
-      <label class="muted">Hoca ID:</label>
-      <input id="teacherId" placeholder="örn. h-abc12345">
+      <label class="muted">Hoca ID veya link:</label>
+      <input id="teacherId" placeholder="h-abc12345 veya https://.../ogrenci.html#peer=h-abc12345">
       <button id="connectBtn" class="primary" style="margin-top:8px;">Bağlan</button>
       <button id="scanBtn" class="hidden" style="margin-top:8px;">📷 Kamera ile QR Oku</button>
       <div id="scanner" class="scanner hidden"></div>
@@ -35,9 +35,13 @@
       <div id="log" class="log"></div>
     </section>
   </main>
-   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"
+
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"
           onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js'"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
           onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js'"></script>
+  <script src="common.js?v=5"></script>
+  <script src="ogrenci.js?v=5"></script>
+  <script src="sw-register.js?v=5"></script>
 </body>
 </html>

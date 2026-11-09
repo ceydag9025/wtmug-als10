@@ -1,3 +1,5 @@
+console.log('%cogrenci.js v5 — ' + new Date().toISOString(), 'color:#22c55e;font-weight:bold');
+
 const statusEl        = document.getElementById('status');
 const connectSection  = document.getElementById('connectSection');
 const transferSection = document.getElementById('transferSection');
@@ -12,25 +14,37 @@ const downloadEl      = document.getElementById('download');
 const logEl           = document.getElementById('log');
 
 let peer = null, conn = null;
-const incoming = {}; // id -> { name, mime, size, chunks, received }
+const incoming = {};
 let currentURL = null;
 
-function setStatus(txt, cls) { statusEl.textContent = txt; statusEl.className = 'status ' + (cls || ''); }
+function setStatus(txt, cls) {
+  statusEl.textContent = txt;
+  statusEl.className = 'status ' + (cls || '');
+}
 function log(text) {
   const d = document.createElement('div');
-  d.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+  d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + text;
   logEl.appendChild(d);
   logEl.scrollTop = logEl.scrollHeight;
 }
+function extractPeerId(input) {
+  if (!input) return null;
+  const s = String(input).trim();
+  const m = s.match(/peer=([^&]+)/);
+  if (m) return decodeURIComponent(m[1]);
+  return s;
+}
 
-// Cihaz türü otomatik algılama
 const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768;
 if (!isMobile) scanBtn.classList.add('hidden');
+else scanBtn.classList.remove('hidden');
 
 function connectTo(teacherId) {
+  teacherId = extractPeerId(teacherId);
   if (!teacherId) return;
   setStatus('Bağlanıyor: ' + teacherId, 'waiting');
-  peer = new Peer(undefined, { debug: 1 });
+  if (typeof Peer === 'undefined') { setStatus('PeerJS yüklenemedi', 'error'); return; }
+  peer = new Peer(undefined, { debug: 2 });
   peer.on('open', () => {
     const c = peer.connect(teacherId, { reliable: true });
     conn = c;
@@ -42,13 +56,10 @@ function connectTo(teacherId) {
       statusTextEl.textContent = 'Dosya bekleniyor...';
     });
     c.on('data', handleData);
-    c.on('close', () => {
-      setStatus('Bağlantı kapandı', 'error');
-      log('Bağlantı kapandı');
-    });
+    c.on('close', () => { setStatus('Bağlantı kapandı', 'error'); log('Bağlantı kapandı'); });
     c.on('error', console.error);
   });
-  peer.on('error', err => { console.error(err); setStatus('Hata: ' + err.type, 'error'); });
+  peer.on('error', (err) => { console.error(err); setStatus('Hata: ' + err.type, 'error'); });
 }
 
 function handleData(data) {
@@ -70,9 +81,8 @@ function handleData(data) {
   if (data && typeof data === 'object') {
     if (data.type === 'file-start') {
       incoming[data.id] = { id: data.id, name: data.name, mime: data.mime, size: data.size, chunks: [], received: 0 };
-      log(`📥 Dosya alınıyor: ${data.name} (${formatSize(data.size)})`);
-      barEl.style.width = '0%';
-      pctEl.textContent = '0%';
+      log('📥 Dosya alınıyor: ' + data.name + ' (' + formatSize(data.size) + ')');
+      barEl.style.width = '0%'; pctEl.textContent = '0%';
       statusTextEl.textContent = 'Alınıyor...';
       downloadEl.classList.add('hidden');
     } else if (data.type === 'file-end') {
@@ -87,15 +97,15 @@ function handleData(data) {
       downloadEl.textContent = '💾 ' + e.name + ' — İndir';
       downloadEl.classList.remove('hidden');
       statusTextEl.textContent = 'Tamamlandı ✓';
-      log(`✅ Dosya tamamlandı: ${e.name}`);
+      log('✅ Dosya tamamlandı: ' + e.name);
       if (conn && conn.open) conn.send({ type: 'file-ack', name: e.name });
     }
   }
 }
 
-connectBtn.addEventListener('click', () => connectTo(teacherIdInput.value.trim()));
-
+connectBtn.addEventListener('click', () => connectTo(teacherIdInput.value));
 scanBtn.addEventListener('click', async () => {
+  if (typeof Html5Qrcode === 'undefined') { alert('QR okuyucu yüklenemedi.'); return; }
   scannerEl.classList.remove('hidden');
   const scanner = new Html5Qrcode('scanner');
   try {
@@ -104,8 +114,7 @@ scanBtn.addEventListener('click', async () => {
       { fps: 10, qrbox: { width: 240, height: 240 } },
       (text) => {
         scanner.stop().then(() => { scanner.clear(); scannerEl.classList.add('hidden'); });
-        const m = text.match(/peer=([^&]+)/);
-        const id = m ? decodeURIComponent(m[1]) : text.trim();
+        const id = extractPeerId(text);
         teacherIdInput.value = id;
         connectTo(id);
       },
@@ -117,7 +126,6 @@ scanBtn.addEventListener('click', async () => {
   }
 });
 
-// URL hash ile otomatik bağlan
 const m = location.hash.match(/peer=([^&]+)/);
 if (m) {
   const id = decodeURIComponent(m[1]);

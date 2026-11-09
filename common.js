@@ -1,8 +1,12 @@
-// ---- Sabitler ----
-const CHUNK_SIZE = 16 * 1024;             // 16 KB
-const BACKPRESSURE_LIMIT = 1024 * 1024;   // 1 MB tampon eşiği
+/* ============================================================
+   common.js — Ortak protokol + BULLETPROOF QR RENDER
+   ============================================================ */
 
-// ---- Yardımcılar ----
+console.log('%ccommon.js v5 yüklendi', 'color:#4a7dff;font-weight:bold');
+
+const CHUNK_SIZE = 16 * 1024;
+const BACKPRESSURE_LIMIT = 1024 * 1024;
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -15,12 +19,105 @@ function formatSize(b) {
   return (b/1024/1024/1024).toFixed(2) + ' GB';
 }
 
-// ---- Sohbet + dosya UI + transfer mantığı ----
+/* ============================================================
+   renderQR — 3 kademeli fallback
+   1) QRCode.toDataURL (varsa)
+   2) api.qrserver.com (fallback <img>)
+   3) Manuel link göster
+   ============================================================ */
+function renderQR(container, text) {
+  console.log('%c[QR] renderQR başladı', 'color:#4a7dff;font-weight:bold');
+  console.log('[QR] QRCode global:', typeof QRCode);
+  console.log('[QR] Hedef:', text);
+  console.log('[QR] Container:', container);
+
+  if (!container) { console.error('[QR] Container yok!'); return; }
+  container.innerHTML = '';
+
+  const diag = document.createElement('div');
+  diag.className = 'qr-diag';
+  diag.textContent = 'QR hazırlanıyor...';
+  container.appendChild(diag);
+
+  /* ---- Yedek 2: qrserver.com ---- */
+  function tryQrServer() {
+    console.warn('[QR] qrserver.com deneniyor');
+    diag.textContent = 'Alternatif QR servisi deneniyor...';
+    const api = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=4&data=' + encodeURIComponent(text);
+    const img = document.createElement('img');
+    img.className = 'qr-img';
+    img.alt = 'QR Kod';
+    img.style.display = 'none';
+    img.onload  = () => { diag.remove(); img.style.display = 'block'; console.log('[QR] ✅ qrserver başarılı'); };
+    img.onerror = () => {
+      console.error('[QR] ❌ qrserver başarısız');
+      diag.textContent = 'QR üretilemedi. Aşağıdaki linki elle kullanın.';
+      addFallbackLink(container, text);
+    };
+    img.src = api;
+    container.appendChild(img);
+  }
+
+  /* ---- Yedek 3: manuel link ---- */
+  function addFallbackLink(container, text) {
+    const box = document.createElement('div');
+    box.className = 'qr-fallback';
+    box.innerHTML = '<strong>QR üretilemedi.</strong><br>Bu adresi elle girin:<br><code></code>';
+    box.querySelector('code').textContent = text;
+    container.appendChild(box);
+  }
+
+  /* ---- Yedek 1: QRCode kütüphanesi ---- */
+  if (typeof QRCode !== 'undefined' && typeof QRCode.toDataURL === 'function') {
+    const opts = { width: 280, margin: 2, errorCorrectionLevel: 'M' };
+
+    function onSuccess(url) {
+      console.log('[QR] ✅ toDataURL başarılı');
+      diag.remove();
+      const img = document.createElement('img');
+      img.className = 'qr-img';
+      img.alt = 'QR Kod';
+      img.src = url;
+      container.appendChild(img);
+    }
+    function onError(err) {
+      console.warn('[QR] toDataURL hata, qrserver deneniyor:', err);
+      tryQrServer();
+    }
+
+    try {
+      // Promise API (qrcode@1.5 Promise döner)
+      const r = QRCode.toDataURL(text, opts);
+      if (r && typeof r.then === 'function') {
+        r.then(onSuccess).catch(() => {
+          // callback API dene
+          try { QRCode.toDataURL(text, opts, (e,u)=> e ? onError(e) : onSuccess(u)); }
+          catch(e2){ onError(e2); }
+        });
+      } else if (typeof r === 'string') {
+        onSuccess(r);
+      } else {
+        QRCode.toDataURL(text, opts, (e,u)=> e ? onError(e) : onSuccess(u));
+      }
+    } catch (e) {
+      console.warn('[QR] toDataURL exception:', e);
+      tryQrServer();
+    }
+    return;
+  }
+
+  console.warn('[QR] QRCode kütüphanesi yok → qrserver deneniyor');
+  tryQrServer();
+}
+
+/* ============================================================
+   ChatUI — sohbet + dosya transfer UI + chunk birleştirme
+   ============================================================ */
 class ChatUI {
   constructor(messagesEl) {
     this.messagesEl = messagesEl;
-    this.incoming = {};      // id -> parça tamponu (ALICI tarafı)
-    this.fileEls = {};       // id -> DOM elemanı (hem alıcı hem gönderici)
+    this.incoming = {};
+    this.fileEls = {};
   }
   scroll() { this.messagesEl.scrollTop = this.messagesEl.scrollHeight; }
 
@@ -37,12 +134,12 @@ class ChatUI {
   fileStart(dir, id, name, size, mime, label) {
     const d = document.createElement('div');
     d.className = 'msg file ' + dir;
-    d.innerHTML = `
-      <div class="file-name">📄 ${escapeHtml(name)}</div>
-      <div class="file-size">${formatSize(size)}</div>
-      <div class="progress"><div class="bar" style="width:0%"></div></div>
-      <div class="file-status">${label}</div>
-      <div class="file-extra"></div>`;
+    d.innerHTML =
+      '<div class="file-name">📄 ' + escapeHtml(name) + '</div>' +
+      '<div class="file-size">' + formatSize(size) + '</div>' +
+      '<div class="progress"><div class="bar" style="width:0%"></div></div>' +
+      '<div class="file-status">' + label + '</div>' +
+      '<div class="file-extra"></div>';
     this.messagesEl.appendChild(d);
     this.fileEls[id] = d;
     this.scroll();
@@ -75,8 +172,6 @@ class ChatUI {
     a.className = 'download-btn'; extra.appendChild(a);
     delete this.fileEls[id];
   }
-
-  // Gelen metadata
   handleMeta(msg) {
     if (msg.type === 'chat') {
       this.message('in', msg.text);
@@ -90,8 +185,6 @@ class ChatUI {
       this.fileComplete(msg.id, blob, e.name, e.mime);
     }
   }
-
-  // Gelen binary chunk
   handleBinary(data) {
     const entries = Object.values(this.incoming);
     if (!entries.length) return;
@@ -107,7 +200,6 @@ class ChatUI {
   }
 }
 
-// ---- Gönderim ----
 async function sendFile(conn, file, chatUI) {
   if (!conn || !conn.open) return;
   const id = 'f-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);

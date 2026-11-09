@@ -1,14 +1,17 @@
-const statusEl   = document.getElementById('status');
-const waitingEl  = document.getElementById('waiting');
-const chatEl     = document.getElementById('chat');
-const messagesEl = document.getElementById('messages');
-const peerLinkEl = document.getElementById('peerLink');
-const copyBtn    = document.getElementById('copyBtn');
-const textInput  = document.getElementById('textInput');
-const sendBtn    = document.getElementById('sendBtn');
-const attachBtn  = document.getElementById('attachBtn');
-const fileInput  = document.getElementById('fileInput');
-const qrHolder   = document.getElementById('qrHolder');
+console.log('%cweb.js v5 — ' + new Date().toISOString(), 'color:#22c55e;font-weight:bold');
+
+const statusEl     = document.getElementById('status');
+const waitingEl    = document.getElementById('waiting');
+const chatEl       = document.getElementById('chat');
+const messagesEl   = document.getElementById('messages');
+const peerLinkEl   = document.getElementById('peerLink');
+const peerIdView   = document.getElementById('peerIdView');
+const qrHolder     = document.getElementById('qrHolder');
+const copyBtn      = document.getElementById('copyBtn');
+const textInput    = document.getElementById('textInput');
+const sendBtn      = document.getElementById('sendBtn');
+const attachBtn    = document.getElementById('attachBtn');
+const fileInput    = document.getElementById('fileInput');
 
 const chatUI = new ChatUI(messagesEl);
 let peer = null, conn = null;
@@ -18,81 +21,39 @@ function setStatus(txt, cls) {
   statusEl.className = 'status ' + (cls || '');
 }
 
-/* ---------------- QR Yardımcıları ---------------- */
-function renderQR(text) {
-  if (typeof QRCode === 'undefined') {
-    console.error('QRCode kütüphanesi yüklenmedi!');
-    setStatus('QR kütüphanesi yüklenemedi (CDN engelli olabilir)', 'error');
-    const fb = document.createElement('div');
-    fb.className = 'muted';
-    fb.style.cssText = 'padding:12px;border:1px dashed var(--border);border-radius:8px;word-break:break-all;';
-    fb.textContent = 'QR üretilemedi. Aşağıdaki bağlantıyı telefona elle yapıştırın: ' + text;
-    qrHolder.innerHTML = '';
-    qrHolder.appendChild(fb);
-    return;
-  }
-  // 1) canvas ile dene
-  const canvas = qrHolder.querySelector('canvas') || (() => {
-    const c = document.createElement('canvas');
-    qrHolder.innerHTML = '';
-    qrHolder.appendChild(c);
-    return c;
-  })();
-  try {
-    QRCode.toCanvas(canvas, text, { width: 260, margin: 1 }, (err) => {
-      if (err) {
-        console.error('toCanvas hata:', err);
-        // 2) dataURL + <img> fallback
-        QRCode.toDataURL(text, { width: 260, margin: 1 }, (err2, url) => {
-          if (err2) {
-            console.error('toDataURL hata:', err2);
-            setStatus('QR üretilemedi', 'error');
-            return;
-          }
-          const img = new Image();
-          img.src = url;
-          img.alt = 'QR Kod';
-          img.style.cssText = 'background:#fff;border-radius:8px;padding:8px;width:260px;height:260px;';
-          qrHolder.innerHTML = '';
-          qrHolder.appendChild(img);
-        });
-      }
-    });
-  } catch (e) {
-    console.error('QR exception:', e);
-    setStatus('QR üretilemedi: ' + e.message, 'error');
-  }
-}
-
-/* ---------------- Başlatma ---------------- */
 function init() {
+  // 1) Peer ID'yi ŞİMDİ belirle
   const id = 'w-' + Math.random().toString(36).slice(2, 10);
+  peerIdView.textContent = id;
 
-  // 1) URL'i HEMEN hazırla + QR'ı HEMEN göster (peer.on('open') beklemeden!)
+  // 2) URL'i ŞİMDİ oluştur
   const url = new URL('mobile.html', location.href.replace(/[^/]*$/, ''));
   url.hash = 'peer=' + id;
   const link = url.toString();
   peerLinkEl.value = link;
-  renderQR(link);
+
+  // 3) QR'ı ŞİMDİ çiz (PeerJS bekleme YOK!)
+  renderQR(qrHolder, link);
   setStatus('Sunucuya bağlanılıyor...', 'waiting');
 
-  // 2) Peer oluştur
+  // 4) PeerJS başlat
   if (typeof Peer === 'undefined') {
-    setStatus('PeerJS kütüphanesi yüklenemedi', 'error');
+    setStatus('PeerJS yüklenemedi (CDN engelli olabilir)', 'error');
+    console.error('Peer tanımsız');
     return;
   }
   peer = new Peer(id, { debug: 2 });
 
-  peer.on('open', (peerId) => {
-    setStatus('Hazır — QR kodu okutun (' + peerId + ')', 'waiting');
-    console.log('Peer opened:', peerId);
+  peer.on('open', (pid) => {
+    setStatus('Hazır — QR okutun (' + pid + ')', 'waiting');
+    console.log('✅ Peer açıldı:', pid);
   });
 
   peer.on('error', (err) => {
-    console.error('Peer error:', err);
+    console.error('Peer hata:', err);
     let msg = 'Peer hatası: ' + err.type;
-    if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
-      msg = 'Sunucuya ulaşılamıyor — bağlantı kurulamayabilir';
+    if (['network','server-error','socket-error','socket-closed'].includes(err.type)) {
+      msg = 'PeerJS sunucusuna ulaşılamıyor (ağ engelli olabilir)';
     } else if (err.type === 'unavailable-id') {
       msg = 'ID çakışması — sayfayı yenileyin';
     }
@@ -100,9 +61,8 @@ function init() {
   });
 
   peer.on('disconnected', () => {
-    console.warn('Peer disconnected, reconnecting...');
-    setStatus('Bağlantı koptu, yeniden bağlanıyor...', 'waiting');
-    try { peer.reconnect(); } catch (e) {}
+    setStatus('Bağlantı koptu, yeniden deneniyor...', 'waiting');
+    try { peer.reconnect(); } catch(e){}
   });
 
   peer.on('connection', (c) => {
@@ -127,16 +87,8 @@ function init() {
     });
     c.on('error', console.error);
   });
-
-  // 10 sn sonra hala açılmadıysa kullanıcıya bilgi ver
-  setTimeout(() => {
-    if (peer && !peer.open && statusEl.classList.contains('waiting')) {
-      setStatus('Sunucu yavaş yanıt veriyor — QR kodu yine de taranabilir', 'waiting');
-    }
-  }, 10000);
 }
 
-/* ---------------- Mesaj & dosya ---------------- */
 function sendChat() {
   const text = textInput.value.trim();
   if (!text || !conn || !conn.open) return;
@@ -154,7 +106,7 @@ fileInput.addEventListener('change', async () => {
   fileInput.value = '';
 });
 copyBtn.addEventListener('click', () => {
-  peerLinkEl.select(); navigator.clipboard.writeText(peerLinkEl.value).catch(() => {});
+  peerLinkEl.select(); navigator.clipboard.writeText(peerLinkEl.value).catch(()=>{});
 });
 
 init();
