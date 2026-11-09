@@ -1,12 +1,28 @@
-/* ============================================================
-   common.js — Ortak protokol + BULLETPROOF QR RENDER
-   ============================================================ */
+console.log('%ccommon.js v9 yüklendi', 'color:#4a7dff;font-weight:bold');
 
-console.log('%ccommon.js v5 yüklendi', 'color:#4a7dff;font-weight:bold');
-
+/* ==================== SABİTLER ==================== */
 const CHUNK_SIZE = 16 * 1024;
 const BACKPRESSURE_LIMIT = 1024 * 1024;
 
+/* ==================== PEERJS KONFİGÜRASYONU ====================
+   Google + Cloudflare + Metered STUN sunucuları (ücretsiz).
+   Farklı ağlar arası NAT geçişi için yeterli. */
+const PEER_CONFIG = {
+  debug: 1,
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      { urls: 'stun:stun.relay.metered.ca:80' }
+    ],
+    iceCandidatePoolSize: 10,
+    sdpSemantics: 'unified-plan'
+  }
+};
+
+/* ==================== YARDIMCILAR ==================== */
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -18,101 +34,46 @@ function formatSize(b) {
   if (b < 1024*1024*1024) return (b/1024/1024).toFixed(1) + ' MB';
   return (b/1024/1024/1024).toFixed(2) + ' GB';
 }
-
-/* ============================================================
-   renderQR — 3 kademeli fallback
-   1) QRCode.toDataURL (varsa)
-   2) api.qrserver.com (fallback <img>)
-   3) Manuel link göster
-   ============================================================ */
-function renderQR(container, text) {
-  console.log('%c[QR] renderQR başladı', 'color:#4a7dff;font-weight:bold');
-  console.log('[QR] QRCode global:', typeof QRCode);
-  console.log('[QR] Hedef:', text);
-  console.log('[QR] Container:', container);
-
-  if (!container) { console.error('[QR] Container yok!'); return; }
-  container.innerHTML = '';
-
-  const diag = document.createElement('div');
-  diag.className = 'qr-diag';
-  diag.textContent = 'QR hazırlanıyor...';
-  container.appendChild(diag);
-
-  /* ---- Yedek 2: qrserver.com ---- */
-  function tryQrServer() {
-    console.warn('[QR] qrserver.com deneniyor');
-    diag.textContent = 'Alternatif QR servisi deneniyor...';
-    const api = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=4&data=' + encodeURIComponent(text);
-    const img = document.createElement('img');
-    img.className = 'qr-img';
-    img.alt = 'QR Kod';
-    img.style.display = 'none';
-    img.onload  = () => { diag.remove(); img.style.display = 'block'; console.log('[QR] ✅ qrserver başarılı'); };
-    img.onerror = () => {
-      console.error('[QR] ❌ qrserver başarısız');
-      diag.textContent = 'QR üretilemedi. Aşağıdaki linki elle kullanın.';
-      addFallbackLink(container, text);
-    };
-    img.src = api;
-    container.appendChild(img);
+/* Sağlam ID üretimi — crypto.randomUUID varsa onu kullan */
+function makePeerId(prefix) {
+  let rand;
+  try {
+    rand = crypto.randomUUID().replace(/-/g, '').slice(0, 10);
+  } catch (e) {
+    rand = Math.random().toString(36).slice(2).padEnd(10, '0').slice(0, 10);
   }
-
-  /* ---- Yedek 3: manuel link ---- */
-  function addFallbackLink(container, text) {
-    const box = document.createElement('div');
-    box.className = 'qr-fallback';
-    box.innerHTML = '<strong>QR üretilemedi.</strong><br>Bu adresi elle girin:<br><code></code>';
-    box.querySelector('code').textContent = text;
-    container.appendChild(box);
-  }
-
-  /* ---- Yedek 1: QRCode kütüphanesi ---- */
-  if (typeof QRCode !== 'undefined' && typeof QRCode.toDataURL === 'function') {
-    const opts = { width: 280, margin: 2, errorCorrectionLevel: 'M' };
-
-    function onSuccess(url) {
-      console.log('[QR] ✅ toDataURL başarılı');
-      diag.remove();
-      const img = document.createElement('img');
-      img.className = 'qr-img';
-      img.alt = 'QR Kod';
-      img.src = url;
-      container.appendChild(img);
-    }
-    function onError(err) {
-      console.warn('[QR] toDataURL hata, qrserver deneniyor:', err);
-      tryQrServer();
-    }
-
-    try {
-      // Promise API (qrcode@1.5 Promise döner)
-      const r = QRCode.toDataURL(text, opts);
-      if (r && typeof r.then === 'function') {
-        r.then(onSuccess).catch(() => {
-          // callback API dene
-          try { QRCode.toDataURL(text, opts, (e,u)=> e ? onError(e) : onSuccess(u)); }
-          catch(e2){ onError(e2); }
-        });
-      } else if (typeof r === 'string') {
-        onSuccess(r);
-      } else {
-        QRCode.toDataURL(text, opts, (e,u)=> e ? onError(e) : onSuccess(u));
-      }
-    } catch (e) {
-      console.warn('[QR] toDataURL exception:', e);
-      tryQrServer();
-    }
-    return;
-  }
-
-  console.warn('[QR] QRCode kütüphanesi yok → qrserver deneniyor');
-  tryQrServer();
+  return prefix + '-' + rand;
 }
 
-/* ============================================================
-   ChatUI — sohbet + dosya transfer UI + chunk birleştirme
-   ============================================================ */
+/* ==================== QR (qrserver.com üzerinden) ====================
+   Kütüphane YOK, canvas YOK — sadece <img>.
+   Hedef cihazda URL açılacak; hash içinde peer ID var. */
+function renderQR(container, text) {
+  console.log('[QR] render ediliyor:', text);
+  if (!container) { console.error('[QR] container yok'); return; }
+  container.innerHTML = '';
+
+  const img = document.createElement('img');
+  img.className = 'qr-img';
+  img.alt = 'QR Kod';
+  img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=4&data=' +
+            encodeURIComponent(text);
+
+  img.onload  = () => console.log('[QR] ✅ yüklendi');
+  img.onerror = () => {
+    console.error('[QR] ❌ qrserver engelli');
+    container.innerHTML = '';
+    const fb = document.createElement('div');
+    fb.className = 'qr-fallback';
+    fb.innerHTML = '<strong>QR görseli yüklenemedi.</strong><br>' +
+      'Aşağıdaki adresi telefona elle girin:<br><code></code>';
+    fb.querySelector('code').textContent = text;
+    container.appendChild(fb);
+  };
+  container.appendChild(img);
+}
+
+/* ==================== ChatUI (ALŞ08 — sohbet + iki yönlü dosya) ==================== */
 class ChatUI {
   constructor(messagesEl) {
     this.messagesEl = messagesEl;
@@ -146,7 +107,7 @@ class ChatUI {
   }
   fileProgress(id, received, size, label) {
     const d = this.fileEls[id]; if (!d) return;
-    const pct = Math.min(100, Math.round(received*100/size));
+    const pct = Math.min(100, Math.round(received * 100 / size));
     d.querySelector('.bar').style.width = pct + '%';
     d.querySelector('.file-status').textContent = label + ' ' + pct + '%';
   }
@@ -168,7 +129,7 @@ class ChatUI {
       a.className = 'preview-media'; extra.appendChild(a);
     }
     const a = document.createElement('a');
-    a.href = url; a.download = name; a.textContent = 'İndir';
+    a.href = url; a.download = name; a.textContent = '💾 İndir';
     a.className = 'download-btn'; extra.appendChild(a);
     delete this.fileEls[id];
   }
@@ -231,7 +192,7 @@ async function sendFile(conn, file, chatUI) {
       v.className = 'preview-media'; extra.appendChild(v);
     }
     const a = document.createElement('a'); a.href = url; a.download = file.name;
-    a.textContent = 'İndir'; a.className = 'download-btn'; extra.appendChild(a);
+    a.textContent = '💾 İndir'; a.className = 'download-btn'; extra.appendChild(a);
     delete chatUI.fileEls[id];
   }
 }

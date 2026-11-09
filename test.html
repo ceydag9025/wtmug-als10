@@ -3,65 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Tanı</title>
+  <title>PeerJS Ağ Testi</title>
   <style>
-    body{font-family:system-ui,sans-serif;background:#0e1116;color:#e6edf3;padding:20px;max-width:720px;margin:auto}
-    h1{font-size:1.2rem}
-    pre{background:#161b22;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap}
-    img{background:#fff;border-radius:8px;margin-top:12px}
+    body{font-family:monospace;background:#0e1116;color:#e6edf3;padding:20px;max-width:720px;margin:auto}
+    h1{color:#4a7dff;font-size:1.2rem}
+    pre{background:#161b22;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap;font-size:12px;line-height:1.6}
+    .ok{color:#22c55e}.err{color:#ef4444}.warn{color:#f59e0b}
   </style>
 </head>
 <body>
-  <h1>🔍 Tanı Sayfası — v5</h1>
-  <p>Hangi kütüphanenin yüklendiğini ve PeerJS sunucusunun erişilebilir olduğunu gösterir.</p>
-  <pre id="log">Yükleniyor...</pre>
-
+  <h1>🔬 PeerJS Ağ Testi</h1>
+  <p>Bu sayfa PeerJS sunucusuna bağlanıp bağlanamadığını gösterir.</p>
+  <pre id="log">Başlıyor...</pre>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"
           onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js'"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"
-          onerror="this.onerror=null;this.src='https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js'"></script>
-
   <script>
     const log = document.getElementById('log');
-    function w(s){ log.textContent += '\n' + s; }
+    function w(s, cls){ log.innerHTML += '<span class="'+(cls||'')+'">'+s+'</span>\n'; console.log(s); }
     setTimeout(() => {
-      log.textContent = '== Kütüphaneler ==';
-      w('PeerJS: ' + (typeof Peer !== 'undefined' ? '✅' : '❌ YÜKLENMEDİ'));
-      w('QRCode: ' + (typeof QRCode !== 'undefined' ? '✅' : '❌ YÜKLENMEDİ'));
+      log.innerHTML = '';
+      w('PeerJS global: ' + (typeof Peer !== 'undefined' ? '✅' : '❌'));
+      if (typeof Peer === 'undefined') { w('Kütüphane yüklenemedi, sayfayı yenile.', 'err'); return; }
 
-      if (typeof QRCode !== 'undefined') {
-        try {
-          QRCode.toDataURL('test', { width: 200 }, (err, url) => {
-            w('QRCode.toDataURL: ' + (err ? '❌ ' + err.message : '✅'));
-            if (!err) { const img = new Image(); img.src = url; document.body.appendChild(img); }
-            else {
-              w('qrserver.com fallback deneniyor...');
-              const img = new Image();
-              img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=test';
-              img.onload = () => w('qrserver.com: ✅');
-              img.onerror = () => w('qrserver.com: ❌');
-              document.body.appendChild(img);
-            }
-          });
-        } catch(e) { w('QRCode hata: ❌ ' + e.message); }
-      } else {
-        w('qrserver.com deneniyor...');
-        const img = new Image();
-        img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=test';
-        img.onload = () => w('qrserver.com: ✅');
-        img.onerror = () => w('qrserver.com: ❌');
-        document.body.appendChild(img);
-      }
+      w('\n== 1) 0.peerjs.com/id endpoint testi ==');
+      fetch('https://0.peerjs.com/peerjs/id', { method: 'GET' })
+        .then(r => r.text())
+        .then(t => w('✅ endpoint cevap: ' + t.slice(0, 80), 'ok'))
+        .catch(e => w('❌ endpoint hatası: ' + e.message, 'err'));
 
-      if (typeof Peer !== 'undefined') {
-        w('\n== PeerJS sunucu testi ==');
-        const id = 'diag-' + Math.random().toString(36).slice(2, 8);
-        const p = new Peer(id, { debug: 1 });
-        p.on('open', pid => w('Peer açıldı: ✅ ' + pid));
-        p.on('error', e => w('Peer hata: ❌ ' + e.type));
-        setTimeout(() => w('10 sn sonra: ' + (p.open ? 'AÇIK ✅' : 'KAPALI ❌')), 10000);
-      }
-    }, 800);
+      w('\n== 2) Peer nesnesi testi ==');
+      const id = 'test-' + Math.random().toString(36).slice(2, 8);
+      w('Oluşturulacak ID: ' + id);
+      const p = new Peer(id, { debug: 2 });
+
+      p.on('open', pid => {
+        w('✅ Peer açıldı: ' + pid, 'ok');
+        w('\n== BAŞARILI ==');
+        w('Bu cihazdan PeerJS çalışıyor.', 'ok');
+      });
+      p.on('error', err => {
+        w('❌ Peer hata: ' + err.type + ' — ' + (err.message || ''), 'err');
+      });
+
+      setTimeout(() => {
+        if (!p.open) {
+          w('\n== 15 sn sonra hâlâ kapalı ==', 'warn');
+          w('Bu cihaz PeerJS sunucusuna ulaşamıyor.', 'err');
+          w('\nMuhtemel nedenler:', 'warn');
+          w('• Wi-Fi/üniversite ağı 0.peerjs.com\'u engelliyor');
+          w('• VPN/simetrik NAT');
+          w('\nÇözüm:', 'warn');
+          w('• Mobil veri kullan (Wi-Fi kapat)');
+          w('• Farklı ağ');
+        }
+      }, 15000);
+    }, 500);
   </script>
 </body>
 </html>

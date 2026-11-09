@@ -1,11 +1,10 @@
 {
-  "name": "P2P Paylaşım — Anonim Dosya Transferi",
-  "short_name": "P2P Paylaşım",
-  "description": "Sunucusuz, uçtan uca şifreli P2P sohbet ve dosya transferi.",
+  "name": "P2P Paylaşım",
+  "short_name": "P2P",
+  "description": "Sunucusuz, uçtan uca şifreli P2P dosya transferi.",
   "start_url": "index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "any",
   "background_color": "#0e1116",
   "theme_color": "#0b3d91",
   "lang": "tr",
@@ -13,9 +12,9 @@
     { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ],
   "shortcuts": [
-    { "name": "Bilgisayar Sohbet", "url": "web.html" },
-    { "name": "Telefon Sohbet",   "url": "mobile.html" },
-    { "name": "Hoca Modu",        "url": "hoca.html" },
-    { "name": "Öğrenci Modu",     "url": "ogrenci.html" }
+    { "name": "Bilgisayar", "url": "web.html" },
+    { "name": "Telefon",    "url": "mobile.html" },
+    { "name": "Hoca",       "url": "hoca.html" },
+    { "name": "Öğrenci",    "url": "ogrenci.html" }
   ]
 }

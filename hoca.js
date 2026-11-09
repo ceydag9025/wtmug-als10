@@ -1,4 +1,4 @@
-console.log('%choca.js v5 — ' + new Date().toISOString(), 'color:#f59e0b;font-weight:bold');
+console.log('%choca.js v9 — ' + new Date().toISOString(), 'color:#f59e0b;font-weight:bold');
 
 const statusEl       = document.getElementById('status');
 const fileInput      = document.getElementById('fileInput');
@@ -78,7 +78,7 @@ fileInput.addEventListener('change', () => {
 });
 
 function init() {
-  const id = 'h-' + Math.random().toString(36).slice(2, 8);
+  const id = makePeerId('h');
   peerIdEl.textContent = id;
 
   const url = new URL('ogrenci.html', location.href.replace(/[^/]*$/, ''));
@@ -89,27 +89,39 @@ function init() {
     linkOut.select(); navigator.clipboard.writeText(link).catch(()=>{});
   };
 
-  // QR'ı HEMEN çiz
-  renderQR(qrHolder, link);
-  setStatus('Sunucuya bağlanılıyor...', 'waiting');
+  // QR HENÜZ YOK — peer.open bekle
+  qrHolder.innerHTML = '<div class="qr-diag">Sunucuya bağlanılıyor...</div>';
+  setStatus('PeerJS sunucusuna bağlanılıyor...', 'waiting');
 
   if (typeof Peer === 'undefined') {
     setStatus('PeerJS yüklenemedi', 'error');
+    qrHolder.innerHTML = '<div class="qr-fallback"><strong>PeerJS yüklenemedi.</strong></div>';
     return;
   }
-  peer = new Peer(id, { debug: 2 });
+  peer = new Peer(id, PEER_CONFIG);
+
+  const timeout = setTimeout(() => {
+    if (peer && !peer.open) {
+      setStatus('❌ Sunucuya ulaşılamıyor', 'error');
+      qrHolder.innerHTML = '<div class="qr-fallback"><strong>PeerJS sunucusuna bağlanılamadı.</strong><br>Farklı ağ deneyin (mobil veri / farklı Wi-Fi).</div>';
+    }
+  }, 12000);
 
   peer.on('open', (pid) => {
-    setStatus('Hazır — QR okutun (' + pid + ')', 'waiting');
+    clearTimeout(timeout);
     console.log('✅ Hoca peer açıldı:', pid);
+    renderQR(qrHolder, link);
+    setStatus('Hazır — QR okutun (' + pid + ')', 'waiting');
   });
   peer.on('error', (err) => {
-    console.error('Hoca peer hata:', err);
+    clearTimeout(timeout);
+    console.error('Hoca peer hata:', err.type, err);
     setStatus('Hata: ' + err.type, 'error');
   });
   peer.on('disconnected', () => { try { peer.reconnect(); } catch(e){} });
 
   peer.on('connection', (conn) => {
+    console.log('📥 Öğrenci bağlandı:', conn.peer);
     students[conn.peer] = { conn, progress: 0, done: false };
     conn.on('open', () => {
       log('✅ ' + conn.peer + ' bağlandı');

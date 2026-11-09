@@ -1,4 +1,4 @@
-console.log('%cogrenci.js v5 — ' + new Date().toISOString(), 'color:#22c55e;font-weight:bold');
+console.log('%cogrenci.js v9 — ' + new Date().toISOString(), 'color:#22c55e;font-weight:bold');
 
 const statusEl        = document.getElementById('status');
 const connectSection  = document.getElementById('connectSection');
@@ -42,13 +42,34 @@ else scanBtn.classList.remove('hidden');
 function connectTo(teacherId) {
   teacherId = extractPeerId(teacherId);
   if (!teacherId) return;
-  setStatus('Bağlanıyor: ' + teacherId, 'waiting');
+  setStatus('Sunucuya bağlanılıyor...', 'waiting');
   if (typeof Peer === 'undefined') { setStatus('PeerJS yüklenemedi', 'error'); return; }
-  peer = new Peer(undefined, { debug: 2 });
+
+  peer = new Peer(undefined, PEER_CONFIG);
+
+  const timeout = setTimeout(() => {
+    if (peer && !peer.open) {
+      setStatus('❌ Sunucuya ulaşılamıyor', 'error');
+      alert('PeerJS sunucusuna bağlanılamadı.\nMobil veri veya farklı Wi-Fi ile deneyin.');
+    }
+  }, 12000);
+
   peer.on('open', () => {
+    clearTimeout(timeout);
+    setStatus('Hocaya bağlanılıyor...', 'waiting');
+
     const c = peer.connect(teacherId, { reliable: true });
     conn = c;
+
+    const connTimeout = setTimeout(() => {
+      if (!c.open) {
+        setStatus('❌ Hoca cevap vermiyor', 'error');
+        alert('Hocaya bağlanılamadı.\nHoca QR\'ı yenilemiş olabilir — tekrar okutun.');
+      }
+    }, 15000);
+
     c.on('open', () => {
+      clearTimeout(connTimeout);
       setStatus('Hocaya bağlandı!', 'connected');
       log('Hocaya bağlandı: ' + teacherId);
       connectSection.classList.add('hidden');
@@ -56,10 +77,26 @@ function connectTo(teacherId) {
       statusTextEl.textContent = 'Dosya bekleniyor...';
     });
     c.on('data', handleData);
-    c.on('close', () => { setStatus('Bağlantı kapandı', 'error'); log('Bağlantı kapandı'); });
-    c.on('error', console.error);
+    c.on('close', () => {
+      clearTimeout(connTimeout);
+      setStatus('Bağlantı kapandı', 'error');
+      log('Bağlantı kapandı');
+    });
+    c.on('error', (e) => { clearTimeout(connTimeout); console.error(e); });
   });
-  peer.on('error', (err) => { console.error(err); setStatus('Hata: ' + err.type, 'error'); });
+
+  peer.on('error', (err) => {
+    clearTimeout(timeout);
+    console.error('Ogrenci peer hata:', err.type, err);
+    if (err.type === 'peer-unavailable') {
+      setStatus('❌ Hoca çevrimiçi değil (QR eski)', 'error');
+      alert('Hoca şu an çevrimiçi değil.\nHocanın QR\'ını TEKRAR okutun.');
+    } else if (['network','server-error','socket-error'].includes(err.type)) {
+      setStatus('❌ Sunucuya ulaşılamıyor', 'error');
+    } else {
+      setStatus('Hata: ' + err.type, 'error');
+    }
+  });
 }
 
 function handleData(data) {

@@ -1,17 +1,17 @@
-console.log('%cweb.js v5 — ' + new Date().toISOString(), 'color:#22c55e;font-weight:bold');
+console.log('%cweb.js v9 — ' + new Date().toISOString(), 'color:#22c55e;font-weight:bold');
 
-const statusEl     = document.getElementById('status');
-const waitingEl    = document.getElementById('waiting');
-const chatEl       = document.getElementById('chat');
-const messagesEl   = document.getElementById('messages');
-const peerLinkEl   = document.getElementById('peerLink');
-const peerIdView   = document.getElementById('peerIdView');
-const qrHolder     = document.getElementById('qrHolder');
-const copyBtn      = document.getElementById('copyBtn');
-const textInput    = document.getElementById('textInput');
-const sendBtn      = document.getElementById('sendBtn');
-const attachBtn    = document.getElementById('attachBtn');
-const fileInput    = document.getElementById('fileInput');
+const statusEl   = document.getElementById('status');
+const waitingEl  = document.getElementById('waiting');
+const chatEl     = document.getElementById('chat');
+const messagesEl = document.getElementById('messages');
+const peerLinkEl = document.getElementById('peerLink');
+const peerIdView = document.getElementById('peerIdView');
+const qrHolder   = document.getElementById('qrHolder');
+const copyBtn    = document.getElementById('copyBtn');
+const textInput  = document.getElementById('textInput');
+const sendBtn    = document.getElementById('sendBtn');
+const attachBtn  = document.getElementById('attachBtn');
+const fileInput  = document.getElementById('fileInput');
 
 const chatUI = new ChatUI(messagesEl);
 let peer = null, conn = null;
@@ -22,38 +22,55 @@ function setStatus(txt, cls) {
 }
 
 function init() {
-  // 1) Peer ID'yi ŞİMDİ belirle
-  const id = 'w-' + Math.random().toString(36).slice(2, 10);
+  const id = makePeerId('w');
   peerIdView.textContent = id;
 
-  // 2) URL'i ŞİMDİ oluştur
   const url = new URL('mobile.html', location.href.replace(/[^/]*$/, ''));
   url.hash = 'peer=' + id;
   const link = url.toString();
   peerLinkEl.value = link;
 
-  // 3) QR'ı ŞİMDİ çiz (PeerJS bekleme YOK!)
-  renderQR(qrHolder, link);
-  setStatus('Sunucuya bağlanılıyor...', 'waiting');
+  // QR HENÜZ ÇİZİLMİYOR — peer.on('open') bekleniyor
+  qrHolder.innerHTML = '<div class="qr-diag">Sunucuya bağlanılıyor...</div>';
+  setStatus('PeerJS sunucusuna bağlanılıyor...', 'waiting');
 
-  // 4) PeerJS başlat
   if (typeof Peer === 'undefined') {
-    setStatus('PeerJS yüklenemedi (CDN engelli olabilir)', 'error');
-    console.error('Peer tanımsız');
+    setStatus('PeerJS yüklenemedi (CDN engelli)', 'error');
+    qrHolder.innerHTML = '<div class="qr-fallback"><strong>PeerJS kütüphanesi yüklenemedi.</strong><br>Sayfayı yenileyin veya farklı ağ deneyin.</div>';
     return;
   }
-  peer = new Peer(id, { debug: 2 });
+
+  peer = new Peer(id, PEER_CONFIG);
+
+  // 12 sn sonra hâlâ açılmadıysa bilgi ver
+  const timeout = setTimeout(() => {
+    if (peer && !peer.open) {
+      setStatus('❌ Sunucuya ulaşılamıyor (ağ engelli?)', 'error');
+      qrHolder.innerHTML =
+        '<div class="qr-fallback">' +
+        '<strong>PeerJS sunucusuna bağlanılamadı.</strong><br><br>' +
+        'Muhtemel nedenler:<br>' +
+        '• Kurumsal/üniversite Wi-Fi\'si WebSocket\'i engelliyor<br>' +
+        '• VPN veya güvenlik duvarı<br><br>' +
+        '<strong>Çözüm:</strong> Telefonun <b>mobil verisini</b> aç, ya da farklı bir Wi-Fi dene.' +
+        '</div>';
+    }
+  }, 12000);
 
   peer.on('open', (pid) => {
-    setStatus('Hazır — QR okutun (' + pid + ')', 'waiting');
+    clearTimeout(timeout);
     console.log('✅ Peer açıldı:', pid);
+    // ŞİMDİ QR çiz — ID sunucuda kayıtlı
+    renderQR(qrHolder, link);
+    setStatus('Hazır — QR okutun (' + pid + ')', 'waiting');
   });
 
   peer.on('error', (err) => {
-    console.error('Peer hata:', err);
+    clearTimeout(timeout);
+    console.error('Peer hata:', err.type, err);
     let msg = 'Peer hatası: ' + err.type;
-    if (['network','server-error','socket-error','socket-closed'].includes(err.type)) {
-      msg = 'PeerJS sunucusuna ulaşılamıyor (ağ engelli olabilir)';
+    if (['network','server-error','socket-error','socket-closed','browser-incompatible'].includes(err.type)) {
+      msg = '❌ Sunucuya ulaşılamıyor — ağ engelli olabilir';
     } else if (err.type === 'unavailable-id') {
       msg = 'ID çakışması — sayfayı yenileyin';
     }
@@ -62,10 +79,11 @@ function init() {
 
   peer.on('disconnected', () => {
     setStatus('Bağlantı koptu, yeniden deneniyor...', 'waiting');
-    try { peer.reconnect(); } catch(e){}
+    try { peer.reconnect(); } catch (e) {}
   });
 
   peer.on('connection', (c) => {
+    console.log('📥 Gelen bağlantı:', c.peer);
     if (conn && conn.open) { c.on('open', () => c.close()); return; }
     conn = c;
     c.on('open', () => {
@@ -85,7 +103,7 @@ function init() {
       chatEl.classList.add('hidden');
       conn = null;
     });
-    c.on('error', console.error);
+    c.on('error', (e) => console.error('Conn hata:', e));
   });
 }
 
