@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b3d91">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <title>Öğrenci Modu</title>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back">← Ana Sayfa</a>
+    <h1>🎓 Öğrenci Modu</h1>
+    <span id="status" class="status">Hazır</span>
+  </header>
+  <main>
+    <section id="connectSection" class="panel">
+      <h2>Hocaya bağlan</h2>
+      <label class="muted">Hoca ID:</label>
+      <input id="teacherId" placeholder="örn. h-abc12345">
+      <button id="connectBtn" class="primary" style="margin-top:8px;">Bağlan</button>
+      <button id="scanBtn" class="hidden" style="margin-top:8px;">📷 Kamera ile QR Oku</button>
+      <div id="scanner" class="scanner hidden"></div>
+    </section>
+
+    <section id="transferSection" class="panel hidden">
+      <h2>Dosya Transferi</h2>
+      <div id="statusText" class="muted">Dosya bekleniyor...</div>
+      <div class="progress big"><div id="bar" class="bar" style="width:0%"></div></div>
+      <div id="pct" class="pct">0%</div>
+      <a id="download" class="download-btn hidden" download>İndir</a>
+      <h3 style="margin-top:16px;">Günlük</h3>
+      <div id="log" class="log"></div>
+    </section>
+  </main>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="common.js"></script>
+  <script src="ogrenci.js"></script>
+  <script src="sw-register.js"></script>
+</body>
+</html>

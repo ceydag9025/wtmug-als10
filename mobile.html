@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b3d91">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <title>Sohbet & Dosya — Telefon</title>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back">← Ana Sayfa</a>
+    <h1>📱 Sohbet & Dosya — Telefon</h1>
+    <span id="status" class="status">Hazır</span>
+  </header>
+  <main>
+    <section id="connect" class="panel">
+      <h2>Bilgisayara bağlan</h2>
+      <p class="muted">QR kodu okut veya bilgisayardan paylaşılan bağlantıyı yapıştır.</p>
+      <button id="scanBtn" class="primary">📷 Kamera ile QR Oku</button>
+      <div id="scanner" class="scanner hidden"></div>
+      <div class="manual" style="margin-top:16px;">
+        <label class="muted">Bağlantı adresi / Peer ID:</label>
+        <input id="manualLink" placeholder="https://.../mobile.html#peer=...">
+        <button id="connectManualBtn" style="margin-top:8px;">Bağlan</button>
+      </div>
+    </section>
+
+    <section id="chat" class="panel hidden">
+      <div id="messages" class="messages"></div>
+      <div class="composer">
+        <input type="file" id="fileInput" hidden multiple>
+        <button id="attachBtn">📎</button>
+        <textarea id="textInput" placeholder="Mesaj yaz..."></textarea>
+        <button id="sendBtn" class="primary">Gönder</button>
+      </div>
+    </section>
+  </main>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="common.js"></script>
+  <script src="mobile.js"></script>
+  <script src="sw-register.js"></script>
+</body>
+</html>

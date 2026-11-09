@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b3d91">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <title>P2P Paylaşım — Anonim Transfer</title>
+</head>
+<body>
+  <header>
+    <h1>🔒 P2P Paylaşım</h1>
+  </header>
+  <main class="hub">
+    <p class="muted" style="text-align:center;max-width:600px;">
+      Sunucusuz, uçtan uca şifreli (DTLS) dosya transferi. Anonim bilgisayarlarda güvenle kullanın.
+    </p>
+    <div class="cards">
+      <a class="card" href="web.html">
+        <div class="icon">💻</div>
+        <h2>Sohbet & Dosya — Bilgisayar</h2>
+        <p>Bilgisayarda QR kodu göster, telefondan bağlan. Çift yönlü sohbet + dosya.</p>
+      </a>
+      <a class="card" href="mobile.html">
+        <div class="icon">📱</div>
+        <h2>Sohbet & Dosya — Telefon</h2>
+        <p>Bilgisayardaki QR kodu okut, anında bağlan.</p>
+      </a>
+      <a class="card" href="hoca.html">
+        <div class="icon">🧑‍🏫</div>
+        <h2>Hoca Modu</h2>
+        <p>Dosya seç, QR göster. Bağlanan her öğrenciye otomatik gönder.</p>
+      </a>
+      <a class="card" href="ogrenci.html">
+        <div class="icon">🎓</div>
+        <h2>Öğrenci Modu</h2>
+        <p>Hoca ID'sini gir veya QR oku. Dosyayı al.</p>
+      </a>
+    </div>
+  </main>
+  <script src="sw-register.js"></script>
+</body>
+</html>

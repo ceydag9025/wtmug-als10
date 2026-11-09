@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b3d91">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <title>Sohbet & Dosya — Bilgisayar</title>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back">← Ana Sayfa</a>
+    <h1>💻 Sohbet & Dosya — Bilgisayar</h1>
+    <span id="status" class="status">Başlatılıyor...</span>
+  </header>
+  <main>
+    <section id="waiting" class="panel">
+      <h2>Telefondan bağlan</h2>
+      <p class="muted">QR kodu telefonunla okut veya bağlantıyı elle aç:</p>
+      <canvas id="qrcode"></canvas>
+      <div class="link-row" style="margin-top:12px;">
+        <input id="peerLink" readonly>
+        <button id="copyBtn">Kopyala</button>
+      </div>
+    </section>
+
+    <section id="chat" class="panel hidden">
+      <div id="messages" class="messages"></div>
+      <div class="composer">
+        <input type="file" id="fileInput" hidden multiple>
+        <button id="attachBtn" title="Dosya ekle">📎</button>
+        <textarea id="textInput" placeholder="Mesaj yaz... (Enter = gönder, Shift+Enter = yeni satır)"></textarea>
+        <button id="sendBtn" class="primary">Gönder</button>
+      </div>
+    </section>
+  </main>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="common.js"></script>
+  <script src="web.js"></script>
+  <script src="sw-register.js"></script>
+</body>
+</html>
